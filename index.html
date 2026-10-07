@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Misión Maternidad Segura: Hero Dash - Creado por Yony Rojas Oscco</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            hero: {
+              pink: '#ff2a75',
+              yellow: '#ffd000',
+              cyan: '#00e5ff',
+              purple: '#8a2be2',
+              green: '#00e676',
+              dark: '#0b0f19'
+            }
+          },
+          fontFamily: {
+            sans: ['Quicksand', 'sans-serif'],
+            display: ['Fredoka', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { touch-action: manipulation; user-select: none; }
+    body { font-family: 'Quicksand', sans-serif; background-color: #0b0f19; color: #ffffff; overflow: hidden; }
+
+    .glow-title {
+      text-shadow: 0 0 15px rgba(255, 42, 117, 0.6), 0 0 30px rgba(0, 229, 255, 0.4);
+    }
+
+    .hero-card {
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(16px);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 35px rgba(0, 229, 255, 0.2);
+    }
+
+    .arcade-btn {
+      transition: all 0.12s ease;
+      box-shadow: 0 6px 0 #0099b8;
+    }
+    .arcade-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #0099b8;
+    }
+
+    .difficulty-card {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    .difficulty-card:hover {
+      transform: translateY(-3px) scale(1.02);
+    }
+    .difficulty-card.selected {
+      border-color: #00e5ff;
+      background: rgba(0, 229, 255, 0.18);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+    }
+
+    #runnerCanvas {
+      background: #020617;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .shake-screen {
+      animation: shakeAnim 0.35s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes shakeAnim {
+      10%, 90% { transform: translate3d(-3px, 0, 0); }
+      20%, 80% { transform: translate3d(5px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-7px, 0, 0); }
+      40%, 60% { transform: translate3d(7px, 0, 0); }
+    }
+
+    @media print {
+      body * { visibility: hidden; }
+      #certificate-print, #certificate-print * { visibility: visible; }
+      #certificate-print {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        color: #000 !important;
+        background: #fff !important;
+        border: 4px solid #000 !important;
+      }
+    }
+  </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between items-center relative overflow-hidden bg-slate-950">
+
+  <!-- Header HUD (Top Bar) -->
+  <header class="absolute top-2 left-2 right-2 z-20 max-w-5xl mx-auto flex items-center justify-between bg-slate-900/90 border border-slate-700/80 rounded-2xl p-2 sm:p-3 px-4 backdrop-blur-md shadow-xl">
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-hero-pink to-hero-yellow flex items-center justify-center text-xl shadow-lg animate-pulse">
+        🦸‍♀️
+      </div>
+      <div>
+        <h1 class="font-display font-black text-xs sm:text-base text-hero-cyan leading-tight glow-title">HERO DASH 3D</h1>
+        <p class="text-[9px] sm:text-xs text-hero-yellow font-bold" id="creator-hud-tag">
+          Creado por: <strong class="text-white">Yony Rojas Oscco (Yony)</strong>
+        </p>
+      </div>
+    </div>
+
+    <!-- Live Stats HUD -->
+    <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-extrabold">
+      <span id="hud-difficulty-badge" class="hidden sm:inline-block bg-hero-purple/30 border border-hero-purple/60 text-hero-cyan text-[10px] uppercase px-2.5 py-1 rounded-full font-black">
+        BÁSICO
+      </span>
+
+      <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-xl">
+        <i class="fas fa-flag-checkered text-hero-yellow"></i>
+        <span id="hud-distance" class="font-display text-white text-xs sm:text-base">0</span><span class="text-[9px] text-slate-400">m</span>
+      </div>
+
+      <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-xl">
+        <span class="text-sm sm:text-base">💊</span>
+        <span id="hud-coins" class="font-display text-hero-yellow text-xs sm:text-base">0</span>
+      </div>
+
+      <div class="flex items-center gap-1 bg-slate-800/90 border border-slate-700 px-2 py-1 rounded-xl">
+        <span class="text-rose-500 text-xs sm:text-sm">❤️</span>
+        <span id="hud-lives" class="font-display text-white">3</span>
+      </div>
+
+      <button onclick="toggleAudio()" class="text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800 border border-slate-700">
+        <i class="fas fa-volume-up text-xs sm:text-sm" id="sound-icon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Canvas Viewport -->
+  <main class="w-full h-full relative flex items-center justify-center overflow-hidden" id="canvas-container">
+    <canvas id="runnerCanvas"></canvas>
+
+    <!-- Overlay: Main Menu & Difficulty Selector -->
+    <div id="overlay-menu" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center overflow-y-auto">
+      <div class="max-w-lg w-full hero-card rounded-3xl p-5 sm:p-7 space-y-5 text-center border-hero-cyan/40 my-auto">
+        
+        <!-- Header Branding & Author Credits -->
+        <div class="space-y-1.5">
+          <span class="bg-hero-pink/20 text-hero-pink border border-hero-pink/40 text-[10px] sm:text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+            🎓 Obstetricia Educativa - Juego Interactivo
+          </span>
+          <h2 class="font-display font-black text-2xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-hero-cyan via-hero-yellow to-hero-pink">
+            MISIÓN MATERNIDAD SEGURA
+          </h2>
+          <div class="inline-flex items-center gap-2 bg-slate-900 border border-hero-yellow/50 text-hero-yellow text-xs sm:text-sm px-3.5 py-1.5 rounded-full font-bold shadow-lg">
+            <i class="fas fa-user-graduate text-hero-pink"></i> Creado por la estudiante de Obstetricia: <strong class="text-white font-extrabold">Yony Rojas Oscco (Yony)</strong>
+          </div>
+        </div>
+
+        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed font-semibold">
+          ¡Corre con la superheroína Mariana y su acompañante Alerta 🦜, junta Vitaminas 💊 y reacciona a tiempo ante los <strong class="text-hero-yellow">Signos de Alarma Obstétricos</strong>!
+        </p>
+
+        <!-- Difficulty Selection Cards -->
+        <div class="space-y-2 text-left">
+          <label class="text-xs font-black uppercase text-hero-cyan block tracking-wider text-center">
+            🎯 Selecciona el Modo de Dificultad:
+          </label>
+          <div class="grid grid-cols-3 gap-2">
+            <!-- Basic -->
+            <div onclick="selectDifficulty('basico')" id="diff-basico" class="difficulty-card selected border-2 border-slate-700 bg-slate-900/90 p-3 rounded-2xl flex flex-col items-center text-center space-y-1">
+              <span class="text-xl">🟢</span>
+              <strong class="font-display font-black text-xs text-white">BÁSICO</strong>
+              <span class="text-[9px] text-slate-400 font-semibold leading-tight">Velocidad normal y obstáculos simples.</span>
+            </div>
+
+            <!-- Intermediate -->
+            <div onclick="selectDifficulty('intermedio')" id="diff-intermedio" class="difficulty-card border-2 border-slate-700 bg-slate-900/90 p-3 rounded-2xl flex flex-col items-center text-center space-y-1">
+              <span class="text-xl">🟡</span>
+              <strong class="font-display font-black text-xs text-white">INTERMEDIO</strong>
+              <span class="text-[9px] text-slate-400 font-semibold leading-tight">Velocidad media y más obstáculos.</span>
+            </div>
+
+            <!-- Advanced -->
+            <div onclick="selectDifficulty('avanzado')" id="diff-avanzado" class="difficulty-card border-2 border-slate-700 bg-slate-900/90 p-3 rounded-2xl flex flex-col items-center text-center space-y-1">
+              <span class="text-xl">🔴</span>
+              <strong class="font-display font-black text-xs text-white">AVANZADO</strong>
+              <span class="text-[9px] text-slate-400 font-semibold leading-tight">Rápido + Decisión con Límite de 5s.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Legend -->
+        <div class="grid grid-cols-3 gap-2 text-[10px] sm:text-[11px] font-bold text-slate-300 bg-slate-950/70 p-2.5 rounded-2xl border border-slate-800">
+          <div class="flex flex-col items-center gap-0.5">
+            <span class="bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-hero-cyan">⬅️ ➡️ / A D</span>
+            <span>Mover Carril</span>
+          </div>
+          <div class="flex flex-col items-center gap-0.5">
+            <span class="bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-hero-yellow">⬆️ / Espacio</span>
+            <span>Saltar</span>
+          </div>
+          <div class="flex flex-col items-center gap-0.5">
+            <span class="bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-hero-pink">⬇️ / S</span>
+            <span>Deslizarse</span>
+          </div>
+        </div>
+
+        <!-- Player Name Input for Certificate -->
+        <div class="text-left space-y-1">
+          <label class="text-[10px] font-bold uppercase text-slate-400 block">Tu Nombre (para el Certificado de Reconocimiento):</label>
+          <input type="text" id="player-name-input" value="Promotor/a de Salud" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-hero-cyan">
+        </div>
+
+        <button onclick="startEndlessRun()" class="w-full arcade-btn bg-hero-cyan hover:bg-cyan-300 text-slate-950 font-display font-black text-lg py-3.5 rounded-2xl uppercase tracking-wider">
+          <i class="fas fa-play mr-2"></i> ¡Iniciar Carrera Heroica!
+        </button>
+      </div>
+    </div>
+
+    <!-- Overlay: Educational Hero Decision Checkpoint -->
+    <div id="overlay-checkpoint" class="absolute inset-0 z-40 bg-slate-950/90 backdrop-blur-lg flex items-center justify-center p-4 hidden">
+      <div class="max-w-lg w-full bg-slate-900 border-2 border-hero-pink rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-left relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-hero-pink/20 rounded-full blur-2xl"></div>
+
+        <!-- Header Checkpoint -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-3xl animate-bounce" id="alert-icon">
+              🚨
+            </div>
+            <div>
+              <span class="text-[10px] uppercase font-black tracking-widest text-hero-pink" id="alert-subtitle">TRIMESTRE 1 &bull; SIGNOS DE ALARMA</span>
+              <h3 class="font-display font-black text-white text-base sm:text-xl" id="alert-title">¡SÍNTOMA DE RIESGO DETECTADO!</h3>
+            </div>
+          </div>
+          <!-- Advanced Countdown Timer Badge -->
+          <div id="timer-badge" class="hidden flex-col items-center bg-rose-500/20 border border-rose-500 px-3 py-1 rounded-xl">
+            <span class="text-[9px] font-black uppercase text-rose-400">TIEMPO</span>
+            <span id="timer-sec" class="font-display font-black text-rose-400 text-lg leading-none">5</span>
+          </div>
+        </div>
+
+        <p class="text-xs sm:text-sm text-slate-200 leading-relaxed font-semibold bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800" id="alert-question">
+          Cargando situación obstétrica...
+        </p>
+
+        <div class="space-y-2.5 pt-1" id="alert-options">
+          <!-- Options rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay: Victory & Printable Diploma Screen -->
+    <div id="overlay-victory" class="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden overflow-y-auto">
+      <div class="max-w-lg w-full hero-card rounded-3xl p-5 sm:p-7 text-center space-y-4 my-auto border-hero-yellow/50">
+        <div class="space-y-1">
+          <div class="text-4xl animate-bounce">🏆 🎓 🦸‍♀️</div>
+          <h2 class="font-display font-black text-2xl sm:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-hero-yellow via-hero-cyan to-hero-pink">
+            ¡MISIÓN CUMPLIDA!
+          </h2>
+          <p class="text-xs text-slate-300 font-semibold">
+            ¡Has superado el recorrido y reconocido todas las señales de alarma obstétricas!
+          </p>
+        </div>
+
+        <!-- Printable Certificate Box with Updated Signature -->
+        <div id="certificate-print" class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-hero-yellow rounded-2xl p-5 text-center space-y-3 shadow-2xl relative">
+          <div class="text-[10px] font-black uppercase tracking-widest text-hero-yellow">DIPLOMA OFICIAL DE MATERNIDAD SEGURA</div>
+          
+          <h3 class="font-display font-bold text-lg text-white" id="cert-player-name">Otorgado a: Promotor/a de Salud</h3>
+          <p class="text-[11px] text-slate-300 italic leading-relaxed">
+            "Por su destacada participación en el reconocimiento oportuno de signos de alarma durante la gestación en el modo de dificultad <strong id="cert-diff" class="text-hero-cyan uppercase">BÁSICO</strong>."
+          </p>
+          
+          <div class="border-t border-b border-slate-800 py-2.5 my-1 grid grid-cols-2 gap-2 text-xs font-bold">
+            <div>
+              <span class="block text-[9px] text-slate-400">Distancia Recorrida:</span>
+              <strong class="text-hero-cyan font-display text-sm" id="final-dist">0 m</strong>
+            </div>
+            <div>
+              <span class="block text-[9px] text-slate-400">Vitaminas Junta:</span>
+              <strong class="text-hero-yellow font-display text-sm" id="final-coins">0</strong>
+            </div>
+          </div>
+
+          <!-- Official Author Signature Block -->
+          <div class="pt-2 border-t border-slate-800/80 text-center space-y-0.5">
+            <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Juego Creado y Diseñado por:</span>
+            <strong class="text-hero-yellow text-xs sm:text-sm font-display block">Yony Rojas Oscco (Yony)</strong>
+            <span class="block text-[9px] text-slate-300 font-semibold">Estudiante de la Carrera Profesional de Obstetricia</span>
+            <span class="block text-[8px] text-slate-500">Misión Maternidad Segura &bull; Proyecto de Prevención Perinatal</span>
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button onclick="downloadCertificate()" class="flex-1 arcade-btn bg-hero-yellow hover:bg-yellow-300 text-slate-950 font-display font-black text-xs sm:text-sm py-3 rounded-xl uppercase">
+            <i class="fas fa-print mr-1"></i> Imprimir Diploma
+          </button>
+          <button onclick="startEndlessRun()" class="flex-1 arcade-btn bg-hero-cyan hover:bg-cyan-300 text-slate-950 font-display font-black text-xs sm:text-sm py-3 rounded-xl uppercase">
+            <i class="fas fa-redo mr-1"></i> Jugar de nuevo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- On-Screen Touch Controls (Mobile) -->
+    <div class="absolute bottom-3 left-3 right-3 z-20 flex justify-between items-center max-w-lg mx-auto sm:hidden pointer-events-none">
+      <div class="flex gap-2 pointer-events-auto">
+        <button id="touch-left" class="w-12 h-12 bg-slate-900/90 border-2 border-slate-700 rounded-2xl text-xl text-hero-cyan active:scale-95 flex items-center justify-center backdrop-blur-md">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <button id="touch-right" class="w-12 h-12 bg-slate-900/90 border-2 border-slate-700 rounded-2xl text-xl text-hero-cyan active:scale-95 flex items-center justify-center backdrop-blur-md">
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <div class="flex gap-2 pointer-events-auto">
+        <button id="touch-slide" class="w-12 h-12 bg-slate-900/90 border-2 border-slate-700 rounded-2xl text-xl text-hero-pink active:scale-95 flex items-center justify-center backdrop-blur-md">
+          <i class="fas fa-arrow-down"></i>
+        </button>
+        <button id="touch-jump" class="w-12 h-12 bg-hero-cyan text-slate-950 border-2 border-cyan-200 rounded-2xl text-2xl font-black active:scale-95 flex items-center justify-center backdrop-blur-md shadow-lg">
+          <i class="fas fa-arrow-up"></i>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Web Audio Synthesizer
+    let audioCtx = null;
+    let audioMuted = false;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playSynthSound(type) {
+      if (audioMuted) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'swish') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+          osc.start(now); osc.stop(now + 0.08);
+        } else if (type === 'jump') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.exponentialRampToValueAtTime(550, now + 0.15);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now); osc.stop(now + 0.15);
+        } else if (type === 'coin') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(987.77, now);
+          osc.frequency.setValueAtTime(1318.51, now + 0.08);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'hit') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.linearRampToValueAtTime(60, now + 0.25);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now); osc.stop(now + 0.25);
+        } else if (type === 'boost') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(1000, now + 0.35);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+          osc.start(now); osc.stop(now + 0.35);
+        }
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      audioMuted = !audioMuted;
+      document.getElementById('sound-icon').className = audioMuted ? 'fas fa-volume-mute text-rose-400' : 'fas fa-volume-up';
+    }
+
+    // Engine Core Variables
+    const canvas = document.getElementById('runnerCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let isRunning = false;
+    let isPausedForAlert = false;
+    let animFrame = null;
+    let alertTimerInterval = null;
+    let alertTimeRemaining = 5;
+
+    // Difficulty Settings
+    let selectedDifficultyKey = 'basico';
+    const difficultyConfigs = {
+      basico: {
+        name: "BÁSICO",
+        speed: 5.5,
+        spawnRate: 0.03,
+        checkpointInterval: 280,
+        lives: 4,
+        hasTimeLimit: false
+      },
+      intermedio: {
+        name: "INTERMEDIO",
+        speed: 7.5,
+        spawnRate: 0.045,
+        checkpointInterval: 350,
+        lives: 3,
+        hasTimeLimit: false
+      },
+      avanzado: {
+        name: "AVANZADO",
+        speed: 9.8,
+        spawnRate: 0.065,
+        checkpointInterval: 420,
+        lives: 2,
+        hasTimeLimit: true
+      }
+    };
+
+    // Gameplay Counters
+    let distance = 0;
+    let coins = 0;
+    let lives = 3;
+    let currentTrimester = 1;
+    let speed = 6;
+    let heroBoostTimer = 0;
+
+    // Pseudo-3D Perspective Settings
+    const FOV = 280;
+    let horizonY = 0;
+
+    // Player State
+    let player = {
+      lane: 1,           // 0: Left, 1: Center, 2: Right
+      currentX: 0,
+      y: 0,
+      vy: 0,
+      isJumping: false,
+      isSliding: false,
+      slideTimer: 0
+    };
+
+    let entities = [];
+    let particles = [];
+    let nextCheckpointDist = 300;
+
+    // Obstetric Warning Signs Database
+    const alertDatabase = {
+      1: {
+        subtitle: "TRIMESTRE 1 (SEMANAS 1 - 12)",
+        title: "🚨 SANGRADO VAGINAL Y CÓLICOS",
+        question: "Mariana tiene 8 semanas de gestación y nota un sangrado vaginal rojo con dolor en el vientre. ¿Cuál es la decisión correcta?",
+        options: [
+          { text: "Acudir inmediatamente al centro de salud para descartar una amenaza de aborto.", correct: true, exp: "¡Excelente! Todo sangrado en el 1° trimestre requiere evaluación obstétrica inmediata." },
+          { text: "Tomar una infusión de hierbas y recostarse a esperar sin avisar a nadie.", correct: false, exp: "❌ Incorrecto. La automedicación y la espera pueden poner en riesgo la gestación." }
+        ]
+      },
+      2: {
+        subtitle: "TRIMESTRE 2 (SEMANAS 13 - 27)",
+        title: "🌡️ FIEBRE Y ARDOR INTENSO AL ORINAR",
+        question: "Mariana presenta fiebre de 38.5°C, molestias en la espalda y un ardor muy fuerte al orinar.",
+        options: [
+          { text: "Buscar atención médica para diagnosticar y tratar una Infección Urinaria.", correct: true, exp: "¡Excelente! Las infecciones urinarias no tratadas pueden desencadenar complicaciones o amenazas de parto prematuro." },
+          { text: "Darse un baño con agua helada y esperar varios días.", correct: false, exp: "❌ Incorrecto. La fiebre alta en la gestante requiere diagnóstico y tratamiento preciso." }
+        ]
+      },
+      3: {
+        subtitle: "TRIMESTRE 3 (SEMANAS 28 - 40+)",
+        title: "🌩️ VISIÓN BORROSA, LUCECITAS Y DISMINUCIÓN DE MOVIMIENTOS",
+        question: "Mariana siente un dolor de cabeza fuerte, ve 'lucecitas' brillantes (escotomas) y siente que su bebé se mueve menos de lo habitual.",
+        options: [
+          { text: "Ir de EMERGENCIA al Hospital (Signos graves de Preeclampsia / Riesgo Fetal).", correct: true, exp: "¡Héroe Total! El dolor de cabeza con visión borrosa o alteración de movimientos fetales es una urgencia obstétrica." },
+          { text: "Tomar un analgésico simple y tomar una siesta para descansar.", correct: false, exp: "❌ Peligro. La preeclampsia no tratada pone en riesgo la vida materna y fetal." }
+        ]
+      }
+    };
+
+    function selectDifficulty(diff) {
+      selectedDifficultyKey = diff;
+      document.querySelectorAll('.difficulty-card').forEach(card => card.classList.remove('selected'));
+      document.getElementById(`diff-${diff}`).classList.add('selected');
+    }
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+      horizonY = canvas.height * 0.42;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Keyboard Bindings
+    window.addEventListener('keydown', (e) => {
+      if (!isRunning || isPausedForAlert) return;
+
+      if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && player.lane > 0) {
+        player.lane--;
+        playSynthSound('swish');
+      }
+      if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && player.lane < 2) {
+        player.lane++;
+        playSynthSound('swish');
+      }
+      if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') && !player.isJumping) {
+        player.vy = -14;
+        player.isJumping = true;
+        playSynthSound('jump');
+      }
+      if ((e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') && !player.isSliding) {
+        player.isSliding = true;
+        player.slideTimer = 30;
+        playSynthSound('swish');
+      }
+    });
+
+    // Touch Controls
+    document.getElementById('touch-left').onclick = () => { if (player.lane > 0) { player.lane--; playSynthSound('swish'); } };
+    document.getElementById('touch-right').onclick = () => { if (player.lane < 2) { player.lane++; playSynthSound('swish'); } };
+    document.getElementById('touch-jump').onclick = () => { if (!player.isJumping) { player.vy = -14; player.isJumping = true; playSynthSound('jump'); } };
+    document.getElementById('touch-slide').onclick = () => { if (!player.isSliding) { player.isSliding = true; player.slideTimer = 30; playSynthSound('swish'); } };
+
+    function startEndlessRun() {
+      initAudio();
+      resizeCanvas();
+
+      const config = difficultyConfigs[selectedDifficultyKey];
+
+      distance = 0;
+      coins = 0;
+      lives = config.lives;
+      currentTrimester = 1;
+      speed = config.speed;
+      heroBoostTimer = 0;
+      nextCheckpointDist = config.checkpointInterval;
+
+      player.lane = 1;
+      player.currentX = 1;
+      player.y = 0;
+      player.vy = 0;
+      player.isJumping = false;
+      player.isSliding = false;
+
+      entities = [];
+      particles = [];
+
+      document.getElementById('overlay-menu').classList.add('hidden');
+      document.getElementById('overlay-checkpoint').classList.add('hidden');
+      document.getElementById('overlay-victory').classList.add('hidden');
+
+      document.getElementById('hud-difficulty-badge').innerText = config.name;
+
+      updateHUD();
+      isRunning = true;
+      isPausedForAlert = false;
+
+      if (animFrame) cancelAnimationFrame(animFrame);
+      gameLoop();
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-distance').innerText = Math.floor(distance);
+      document.getElementById('hud-coins').innerText = coins;
+      document.getElementById('hud-lives').innerText = lives;
+    }
+
+    function gameLoop() {
+      if (isRunning) {
+        if (!isPausedForAlert) {
+          update();
+          render();
+        }
+        animFrame = requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function update() {
+      const config = difficultyConfigs[selectedDifficultyKey];
+      const currentSpeed = heroBoostTimer > 0 ? speed * 1.6 : speed;
+      distance += currentSpeed * 0.08;
+
+      if (heroBoostTimer > 0) heroBoostTimer--;
+
+      // Checkpoint Trigger
+      if (distance >= nextCheckpointDist && currentTrimester <= 3) {
+        triggerAlertCheckpoint();
+        return;
+      }
+
+      // Smooth Lane Switching
+      const targetX = player.lane - 1;
+      player.currentX += (targetX - player.currentX) * 0.22;
+
+      // Jump Physics
+      if (player.isJumping) {
+        player.y += player.vy;
+        player.vy += 0.8;
+        if (player.y >= 0) {
+          player.y = 0;
+          player.vy = 0;
+          player.isJumping = false;
+        }
+      }
+
+      // Slide Physics
+      if (player.isSliding) {
+        player.slideTimer--;
+        if (player.slideTimer <= 0) player.isSliding = false;
+      }
+
+      // Spawn Objects
+      if (Math.random() < config.spawnRate) {
+        const lane = Math.floor(Math.random() * 3);
+        const types = ['vitamin', 'water', 'junk_food', 'barrier'];
+        const type = types[Math.floor(Math.random() * types.length)];
+
+        entities.push({
+          lane: lane,
+          z: 1000,
+          type: type
+        });
+      }
+
+      // Process Objects & Collisions
+      for (let i = entities.length - 1; i >= 0; i--) {
+        const e = entities[i];
+        e.z -= currentSpeed * 12;
+
+        if (e.z < 120 && e.z > 30) {
+          if (Math.abs((e.lane - 1) - player.currentX) < 0.5) {
+            if (e.type === 'vitamin' || e.type === 'water') {
+              coins += e.type === 'vitamin' ? 10 : 5;
+              playSynthSound('coin');
+              createParticles(canvas.width / 2, canvas.height * 0.75, '#ffd000');
+              entities.splice(i, 1);
+              updateHUD();
+              continue;
+            } else if (e.type === 'junk_food' || e.type === 'barrier') {
+              if (heroBoostTimer <= 0 && !player.isJumping) {
+                lives--;
+                playSynthSound('hit');
+                canvas.parentElement.classList.add('shake-screen');
+                setTimeout(() => canvas.parentElement.classList.remove('shake-screen'), 350);
+                entities.splice(i, 1);
+                updateHUD();
+
+                if (lives <= 0) {
+                  endGame(false);
+                  return;
+                }
+                continue;
+              }
+            }
+          }
+        }
+
+        if (e.z <= 0) entities.splice(i, 1);
+      }
+
+      // Particles Update
+      particles.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.03;
+        if (p.alpha <= 0) particles.splice(idx, 1);
+      });
+
+      updateHUD();
+    }
+
+    function createParticles(x, y, color) {
+      for (let i = 0; i < 8; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 8,
+          vy: (Math.random() - 0.5) * 8,
+          color,
+          alpha: 1
+        });
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Sky Background
+      const gradient = ctx.createLinearGradient(0, 0, 0, horizonY);
+      gradient.addColorStop(0, '#0f172a');
+      gradient.addColorStop(1, '#1e293b');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, horizonY);
+
+      // Horizon Line
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, horizonY);
+      ctx.lineTo(canvas.width, horizonY);
+      ctx.stroke();
+
+      // Track Lanes
+      const trackBottomY = canvas.height;
+      const trackWidthBottom = canvas.width * 0.85;
+      const trackWidthTop = canvas.width * 0.15;
+      const centerX = canvas.width / 2;
+
+      ctx.fillStyle = heroBoostTimer > 0 ? '#1e1b4b' : '#0f172a';
+      ctx.beginPath();
+      ctx.moveTo(centerX - trackWidthTop / 2, horizonY);
+      ctx.lineTo(centerX + trackWidthTop / 2, horizonY);
+      ctx.lineTo(centerX + trackWidthBottom / 2, trackBottomY);
+      ctx.lineTo(centerX - trackWidthBottom / 2, trackBottomY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Lane Separators
+      ctx.strokeStyle = heroBoostTimer > 0 ? '#ff2a75' : '#334155';
+      ctx.lineWidth = 3;
+      for (let i = -1.5; i <= 1.5; i += 1) {
+        const topX = centerX + (i * (trackWidthTop / 3));
+        const bottomX = centerX + (i * (trackWidthBottom / 3));
+        ctx.beginPath();
+        ctx.moveTo(topX, horizonY);
+        ctx.lineTo(bottomX, trackBottomY);
+        ctx.stroke();
+      }
+
+      // Draw Entities
+      entities.sort((a, b) => b.z - a.z);
+      entities.forEach(e => {
+        const scale = FOV / (FOV + e.z);
+        const x2d = centerX + ((e.lane - 1) * (trackWidthBottom / 3) * scale);
+        const y2d = horizonY + ((canvas.height - horizonY) * scale);
+        const size = 65 * scale;
+
+        ctx.save();
+        ctx.translate(x2d, y2d - size / 2);
+
+        if (e.type === 'vitamin') ctx.font = `${Math.max(12, size)}px sans-serif`, ctx.fillText('💊', -size/2, 0);
+        else if (e.type === 'water') ctx.font = `${Math.max(12, size)}px sans-serif`, ctx.fillText('💧', -size/2, 0);
+        else if (e.type === 'junk_food') ctx.font = `${Math.max(12, size)}px sans-serif`, ctx.fillText('🍔', -size/2, 0);
+        else if (e.type === 'barrier') ctx.font = `${Math.max(12, size)}px sans-serif`, ctx.fillText('🚧', -size/2, 0);
+
+        ctx.restore();
+      });
+
+      // Draw Hero Player (Mariana + Bird Alerta)
+      const scaleP = FOV / (FOV + 50);
+      const playerX = centerX + (player.currentX * (trackWidthBottom / 3) * scaleP);
+      const playerY = horizonY + ((canvas.height - horizonY) * scaleP) + player.y - (player.isSliding ? 20 : 50);
+
+      ctx.save();
+      ctx.translate(playerX, playerY);
+
+      if (heroBoostTimer > 0) {
+        ctx.beginPath();
+        ctx.arc(0, 0, 45, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 42, 117, 0.35)';
+        ctx.fill();
+      }
+
+      ctx.font = player.isSliding ? '36px sans-serif' : '52px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(player.isSliding ? '🤸‍♀️' : '🦸‍♀️', 0, 0);
+
+      ctx.font = '22px sans-serif';
+      ctx.fillText('🦜', -35, -30 + Math.sin(Date.now() * 0.01) * 6);
+
+      ctx.restore();
+
+      // Render Particles
+      particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function triggerAlertCheckpoint() {
+      isPausedForAlert = true;
+      playSynthSound('boost');
+
+      const config = difficultyConfigs[selectedDifficultyKey];
+      const alertData = alertDatabase[currentTrimester];
+
+      document.getElementById('alert-subtitle').innerText = alertData.subtitle;
+      document.getElementById('alert-title').innerText = alertData.title;
+      document.getElementById('alert-question').innerText = alertData.question;
+
+      const timerBadge = document.getElementById('timer-badge');
+      if (config.hasTimeLimit) {
+        timerBadge.classList.remove('hidden');
+        timerBadge.classList.add('flex');
+        alertTimeRemaining = 5;
+        document.getElementById('timer-sec').innerText = alertTimeRemaining;
+
+        if (alertTimerInterval) clearInterval(alertTimerInterval);
+        alertTimerInterval = setInterval(() => {
+          alertTimeRemaining--;
+          document.getElementById('timer-sec').innerText = alertTimeRemaining;
+          if (alertTimeRemaining <= 0) {
+            clearInterval(alertTimerInterval);
+            handleAlertAnswer({ correct: false, exp: "⏱️ ¡Tiempo agotado! En modo Avanzado debes responder antes de 5 segundos." });
+          }
+        }, 1000);
+      } else {
+        timerBadge.classList.add('hidden');
+        timerBadge.classList.remove('flex');
+      }
+
+      const optsContainer = document.getElementById('alert-options');
+      optsContainer.innerHTML = '';
+
+      alertData.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left bg-slate-800 hover:bg-hero-cyan/20 border border-slate-700 hover:border-hero-cyan p-3.5 rounded-2xl text-xs sm:text-sm font-extrabold text-white transition flex items-center justify-between group";
+        btn.innerHTML = `<span>${opt.text}</span> <i class="fas fa-arrow-right text-slate-500 group-hover:text-hero-cyan"></i>`;
+        btn.onclick = () => {
+          if (alertTimerInterval) clearInterval(alertTimerInterval);
+          handleAlertAnswer(opt);
+        };
+        optsContainer.appendChild(btn);
+      });
+
+      document.getElementById('overlay-checkpoint').classList.remove('hidden');
+    }
+
+    function handleAlertAnswer(option) {
+      document.getElementById('overlay-checkpoint').classList.add('hidden');
+
+      if (option.correct) {
+        playSynthSound('boost');
+        heroBoostTimer = 180;
+        coins += 50;
+
+        currentTrimester++;
+        nextCheckpointDist += difficultyConfigs[selectedDifficultyKey].checkpointInterval;
+        speed += 1.2;
+
+        if (currentTrimester > 3) {
+          endGame(true);
+        } else {
+          isPausedForAlert = false;
+        }
+      } else {
+        playSynthSound('hit');
+        lives--;
+        alert(option.exp);
+        updateHUD();
+
+        if (lives <= 0) {
+          endGame(false);
+        } else {
+          isPausedForAlert = false;
+        }
+      }
+    }
+
+    function endGame(victory) {
+      isRunning = false;
+      if (alertTimerInterval) clearInterval(alertTimerInterval);
+
+      const playerName = document.getElementById('player-name-input').value || 'Promotor/a de Salud';
+
+      document.getElementById('final-dist').innerText = `${Math.floor(distance)} m`;
+      document.getElementById('final-coins').innerText = coins;
+      document.getElementById('cert-player-name').innerText = `Otorgado a: ${playerName}`;
+      document.getElementById('cert-diff').innerText = difficultyConfigs[selectedDifficultyKey].name;
+
+      if (victory) {
+        playSynthSound('boost');
+        try { confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); } catch (e) {}
+        document.getElementById('overlay-victory').classList.remove('hidden');
+      } else {
+        alert(`¡Juego Terminado! Recorriste ${Math.floor(distance)}m en nivel ${difficultyConfigs[selectedDifficultyKey].name}.\nProyecto de Obstetricia creado por: Yony Rojas Oscco (Yony).`);
+        document.getElementById('overlay-menu').classList.remove('hidden');
+      }
+    }
+
+    function downloadCertificate() {
+      window.print();
+    }
+  </script>
+</body>
+</html>
