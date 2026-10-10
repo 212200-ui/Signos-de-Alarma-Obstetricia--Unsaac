@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misión Autonomía: Juego de Métodos Anticonceptivos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0d1117;
+            color: #f8fafc;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        .font-game {
+            font-family: 'Fredoka', cursive, sans-serif;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(16px);
+            border: 2px solid rgba(168, 85, 247, 0.35);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+        .btn-game {
+            font-family: 'Fredoka', cursive, sans-serif;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 0 rgba(0,0,0,0.4);
+        }
+        .btn-game:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+        .btn-game:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.4);
+        }
+        #gameCanvas {
+            background: #1e293b;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+            touch-action: manipulation;
+        }
+        .animate-bounce-slow {
+            animation: bounceSlow 2s infinite;
+        }
+        @keyframes bounceSlow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
+
+    <header class="w-full glass-panel sticky top-0 z-40 px-4 py-3 border-b border-purple-500/30">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-pink-500 to-emerald-400 flex items-center justify-center text-2xl shadow-lg border border-white/20 animate-bounce-slow">
+                    🏃‍♀️
+                </div>
+                <div>
+                    <h1 class="font-game text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-emerald-200 tracking-wide">
+                        MISIÓN AUTONOMÍA RUNNER
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-purple-300/80 font-bold uppercase tracking-wider">
+                        Juego Interactivo • Secundaria y Métodos Anticonceptivos
+                    </p>
+                </div>
+            </div>
+
+            <!-- Botón Prominente de Descarga Offline -->
+            <button onclick="downloadGameApp()" class="btn-game px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs sm:text-sm rounded-2xl flex items-center gap-2.5 border border-emerald-300/50 shadow-lg">
+                <i class="fa-solid fa-file-arrow-down text-lg"></i>
+                <span class="font-game">⬇️ DESCARGAR PROGRAMA (.HTML)</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto w-full p-4 my-auto flex-1 flex flex-col justify-center relative">
+
+        <div id="gameplayScreen" class="relative w-full glass-panel rounded-3xl p-4 sm:p-6 flex flex-col items-center">
+            
+            <!-- Canvas principal del videojuego que genera la escena idéntica a la imagen -->
+            <canvas id="gameCanvas" width="900" height="480" class="w-full h-auto border-2 border-purple-500/40 cursor-pointer rounded-2xl shadow-2xl"></canvas>
+
+            <!-- Botones de Control de Juego -->
+            <div class="w-full flex flex-col sm:flex-row justify-between items-center gap-3 mt-4">
+                <div class="text-xs text-purple-300 font-bold flex items-center gap-2">
+                    <span class="px-2.5 py-1 bg-slate-800 rounded-lg border border-slate-700 text-white font-mono">ESPACIO</span> / 
+                    <span class="px-2.5 py-1 bg-slate-800 rounded-lg border border-slate-700 text-white font-mono">⬆ FLECHA</span> / 
+                    <span class="text-purple-200">TAP / CLICK</span> para Saltar
+                </div>
+
+                <div class="flex gap-3 w-full sm:w-auto">
+                    <button id="btnJump" class="btn-game flex-1 sm:flex-initial px-8 py-3.5 bg-gradient-to-r from-purple-600 via-pink-600 to-emerald-500 text-white font-black text-lg rounded-2xl shadow-xl flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-angles-up"></i> ¡SALTAR OBSTÁCULO!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL INTERACTIVO DE TRIVIA CON LA DRA. SOFÍA -->
+        <div id="quizModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+            <div class="glass-panel w-full max-w-xl rounded-3xl p-6 border-2 border-purple-500 space-y-5 animate-bounce-slow">
+                
+                <div class="flex items-center gap-4 bg-purple-950/70 p-4 rounded-2xl border border-purple-500/40">
+                    <div class="w-16 h-16 rounded-2xl overflow-hidden border-2 border-teal-400 shrink-0 shadow-lg bg-teal-900 flex items-center justify-center text-3xl">
+                        👩‍‍⚕️
+                    </div>
+                    <div>
+                        <h3 class="font-game font-bold text-base sm:text-lg text-teal-300">Dra. Sofía (Mentora Médica)</h3>
+                        <p id="quizPrompt" class="text-xs text-slate-200 italic">"¡Cuidado! Chocaste con el mito del Rumor. Responde correctamente para continuar la carrera con protección."</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 id="questionText" class="font-game text-base sm:text-lg text-white font-bold leading-snug">
+                        ¿Pregunta sobre anticoncepción?
+                    </h4>
+                    <div id="answersContainer" class="grid grid-cols-1 gap-2.5 pt-1">
+                        <!-- Respuestas dinámicas -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MODAL DE PANTALLA FIN DE JUEGO / REINICIO -->
+        <div id="gameOverModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+            <div class="glass-panel w-full max-w-md rounded-3xl p-6 text-center space-y-5 border-2 border-pink-500">
+                <div class="w-20 h-20 mx-auto rounded-full bg-pink-500/20 border-2 border-pink-500 flex items-center justify-center text-4xl text-pink-400">
+                    💔
+                </div>
+                <h3 class="font-game text-3xl font-black text-white">¡FIN DE LA CARRERA!</h3>
+                <p class="text-slate-300 text-xs sm:text-sm">Te quedaste sin vidas. Revisa la información con la Dra. Sofía y vuelve a intentarlo para superar el nivel.</p>
+                <div class="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-amber-400 font-game text-2xl font-bold">
+                    PUNTAJE: <span id="finalScore">0</span> XP
+                </div>
+                <button onclick="restartGame()" class="btn-game w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black text-lg rounded-2xl shadow-lg">
+                    <i class="fa-solid fa-rotate-right mr-2"></i> REINTENTAR NIVEL
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        /* ==========================================================================
+           SISTEMA DE AUDIO SINTÉTICO (WEB AUDIO API)
+           ========================================================================== */
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(280, now);
+                osc.frequency.exponentialRampToValueAtTime(650, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'powerup') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(660, now + 0.08);
+                osc.frequency.setValueAtTime(880, now + 0.16);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(160, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        }
+
+        /* ==========================================================================
+           VARIABLES GLOBALES Y CONFIGURACIÓN DEL CANVAS
+           ========================================================================== */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameRunning = true;
+        let score = 1250; // Inicia con el score exacto de la imagen
+        let lives = 3;
+        let level = 1;
+        let gameSpeed = 5;
+        let frameCount = 0;
+
+        // Estado de los Corredores (Chica saltando y Chico corriendo)
+        const girlRunner = {
+            x: 220,
+            y: 210,
+            width: 50,
+            height: 75,
+            vy: -8,
+            gravity: 0.5,
+            jumpPower: -14,
+            isJumping: true,
+            groundY: 290
+        };
+
+        const boyRunner = {
+            x: 370,
+            y: 290,
+            width: 48,
+            height: 75,
+            vy: 0,
+            gravity: 0.5,
+            jumpPower: -14,
+            isJumping: false,
+            groundY: 290,
+            legFrame: 0
+        };
+
+        // Objeto flotante de la Patineta / Obstáculo debajo de la chica
+        const skateboard = {
+            x: 215,
+            y: 330,
+            width: 60,
+            height: 18
+        };
+
+        let obstacles = [
+            { x: 740, y: 260, width: 70, height: 70, name: 'MythCloud' }
+        ];
+
+        let powerups = [
+            { x: 580, y: 310, width: 45, height: 45, type: 'condom' },
+            { x: 230, y: 325, width: 45, height: 45, type: 'pill' }
+        ];
+
+        // Preguntas educativas por Nivel
+        const questionBank = {
+            1: [
+                {
+                    q: "¿Cuál es el ÚNICO método anticonceptivo que previene Infecciones de Transmisión Sexual (ITS) y embarazos no planeados al mismo tiempo?",
+                    a: [
+                        { text: "Preservativo / Condón (Masculino o Femenino)", correct: true },
+                        { text: "Pastillas anticonceptivas diarias", correct: false },
+                        { text: "Implante subdérmico", correct: false }
+                    ]
+                },
+                {
+                    q: "¿Qué se debe verificar antes de usar un preservativo?",
+                    a: [
+                        { text: "Fecha de vencimiento y que el empaque conserve su burbuja de aire", correct: true },
+                        { text: "Si estuvo guardado por meses en la billetera", correct: false },
+                        { text: "El color del empaque", correct: false }
+                    ]
+                }
+            ],
+            2: [
+                {
+                    q: "¿Cómo garantizan las pastillas anticonceptivas su máxima eficacia?",
+                    a: [
+                        { text: "Tomando una pastilla todos los días a la misma hora", correct: true },
+                        { text: "Tomando 2 pastillas solo cuando hay relaciones", correct: false },
+                        { text: "Tomándola con jugo de naranja únicamente", correct: false }
+                    ]
+                }
+            ],
+            3: [
+                {
+                    q: "¿En qué situaciones se recomienda la Anticoncepción Oral de Emergencia (PAE)?",
+                    a: [
+                        { text: "Ante accidentes como rotura del condón o relación sexual no protegida", correct: true },
+                        { text: "Como método diario de uso frecuente", correct: false },
+                        { text: "Para reemplazar al condón en todo momento", correct: false }
+                    ]
+                }
+            ]
+        };
+
+        function jump() {
+            initAudio();
+            if (gameRunning) {
+                playSound('jump');
+                boyRunner.vy = boyRunner.jumpPower;
+                boyRunner.isJumping = true;
+
+                girlRunner.vy = girlRunner.jumpPower;
+                girlRunner.isJumping = true;
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                jump();
+            }
+        });
+
+        document.getElementById('btnJump').addEventListener('click', jump);
+        canvas.addEventListener('click', jump);
+
+        function gameLoop() {
+            if (gameRunning) {
+                update();
+                render();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update() {
+            frameCount++;
+            score += 1;
+
+            // Transición de niveles
+            if (score > 2500 && level === 1) {
+                level = 2;
+                gameSpeed = 6.5;
+            } else if (score > 5000 && level === 2) {
+                level = 3;
+                gameSpeed = 8;
+            }
+
+            // Física de salto Chica
+            girlRunner.vy += girlRunner.gravity;
+            girlRunner.y += girlRunner.vy;
+            if (girlRunner.y >= girlRunner.groundY - 50) {
+                girlRunner.y = girlRunner.groundY - 50;
+                girlRunner.vy = girlRunner.jumpPower;
+            }
+
+            // Física de salto Chico
+            boyRunner.vy += boyRunner.gravity;
+            boyRunner.y += boyRunner.vy;
+            if (boyRunner.y >= boyRunner.groundY) {
+                boyRunner.y = boyRunner.groundY;
+                boyRunner.vy = 0;
+                boyRunner.isJumping = false;
+            }
+
+            // Animación de piernas
+            if (frameCount % 6 === 0) {
+                boyRunner.legFrame = (boyRunner.legFrame + 1) % 4;
+            }
+
+            // Mover Obstáculos (Mitos)
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= gameSpeed;
+
+                if (checkCollision(boyRunner, obstacles[i]) || checkCollision(girlRunner, obstacles[i])) {
+                    obstacles.splice(i, 1);
+                    hitObstacle();
+                    break;
+                }
+
+                if (obstacles[i] && obstacles[i].x < -100) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Generar nuevos obstáculos
+            if (frameCount % 120 === 0) {
+                obstacles.push({
+                    x: canvas.width + 50,
+                    y: 260,
+                    width: 70,
+                    height: 70,
+                    name: 'MythCloud'
+                });
+            }
+
+            // Mover Ítems / Escudos
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                powerups[i].x -= gameSpeed;
+
+                if (checkCollision(boyRunner, powerups[i]) || checkCollision(girlRunner, powerups[i])) {
+                    powerups.splice(i, 1);
+                    playSound('powerup');
+                    score += 250;
+                }
+
+                if (powerups[i] && powerups[i].x < -60) {
+                    powerups.splice(i, 1);
+                }
+            }
+
+            // Generar ítems
+            if (frameCount % 180 === 0) {
+                powerups.push({
+                    x: canvas.width + 40,
+                    y: 310,
+                    width: 45,
+                    height: 45,
+                    type: Math.random() > 0.5 ? 'condom' : 'pill'
+                });
+            }
+        }
+
+        function checkCollision(r, obj) {
+            return (
+                r.x < obj.x + obj.width &&
+                r.x + r.width > obj.x &&
+                r.y < obj.y + obj.height &&
+                r.y + r.height > obj.y
+            );
+        }
+
+        function hitObstacle() {
+            playSound('hit');
+            gameRunning = false;
+            triggerQuizModal();
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. FONDO DE PASILLO ESCOLAR (Luces, Techo y Paredes)
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGrad.addColorStop(0, '#f2d5b5');
+            bgGrad.addColorStop(0.4, '#e2bd9a');
+            bgGrad.addColorStop(1, '#c89970');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Techo con luces fluorescentes
+            ctx.fillStyle = '#cf9d75';
+            ctx.fillRect(0, 0, canvas.width, 50);
+            ctx.fillStyle = '#fffbeb';
+            for (let x = 120; x < canvas.width; x += 220) {
+                ctx.fillRect(x, 15, 110, 20);
+                // Resplandor
+                ctx.fillStyle = 'rgba(255, 253, 231, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(x - 20, 35);
+                ctx.lineTo(x + 130, 35);
+                ctx.lineTo(x + 180, 260);
+                ctx.lineTo(x - 70, 260);
+                ctx.fill();
+                ctx.fillStyle = '#fffbeb';
+            }
+
+            // Paredes del pasillo con columnas
+            ctx.fillStyle = '#e8c49e';
+            for (let x = 0; x < canvas.width; x += 180) {
+                ctx.fillRect(x, 50, 25, 230);
+            }
+
+            // Casilleros Azules
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillRect(520, 90, 220, 190);
+            ctx.fillStyle = '#1d4ed8';
+            ctx.fillRect(520, 90, 220, 10);
+            // Detalles de puertas de casilleros
+            ctx.strokeStyle = '#1e40af';
+            ctx.lineWidth = 2;
+            for (let cx = 530; cx < 730; cx += 35) {
+                ctx.strokeRect(cx, 110, 30, 160);
+                ctx.fillStyle = '#93c5fd';
+                ctx.fillRect(cx + 22, 180, 4, 12);
+                ctx.fillStyle = '#1d4ed8';
+            }
+
+            // Bancas de Madera
+            ctx.fillStyle = '#b45309';
+            ctx.fillRect(500, 280, 240, 16);
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(520, 296, 12, 30);
+            ctx.fillRect(700, 296, 12, 30);
+
+            // Cuadro / Periódico Mural
+            ctx.fillStyle = '#d97706';
+            ctx.fillRect(80, 90, 100, 80);
+            ctx.fillStyle = '#fef3c7';
+            ctx.fillRect(88, 98, 84, 64);
+
+            // PISO DE BALDOSAS DE COLORES (Amarillo, Rosa, Azul, Verde)
+            const tileY = 326;
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(0, tileY, canvas.width, 154);
+
+            const tileColors = ['#fef08a', '#fbcfe8', '#bfdbfe', '#bbf7d0'];
+            let colorIdx = 0;
+            for (let x = 0; x < canvas.width; x += 60) {
+                for (let y = tileY; y < canvas.height; y += 38) {
+                    ctx.fillStyle = tileColors[(colorIdx++) % tileColors.length];
+                    ctx.fillRect(x + 2, y + 2, 56, 34);
+                }
+            }
+
+            // 2. DIBUJAR A LA CHICA SALTANDO EN EL AIRE
+            ctx.save();
+            ctx.translate(girlRunner.x, girlRunner.y);
+            // Cabeza / Cabello Castaño
+            ctx.fillStyle = '#854d0e';
+            ctx.beginPath();
+            ctx.arc(22, 12, 16, 0, Math.PI * 2);
+            ctx.fill();
+            // Piel
+            ctx.fillStyle = '#fbcfe8';
+            ctx.beginPath();
+            ctx.arc(22, 15, 11, 0, Math.PI * 2);
+            ctx.fill();
+            // Polera Verde
+            ctx.fillStyle = '#16a34a';
+            ctx.fillRect(10, 26, 24, 28);
+            // Jeans Azules y Piernas en Posición de Salto
+            ctx.fillStyle = '#1d4ed8';
+            ctx.beginPath();
+            ctx.moveTo(12, 54); ctx.lineTo(2, 68); ctx.lineTo(12, 70);
+            ctx.moveTo(28, 54); ctx.lineTo(42, 64); ctx.lineTo(34, 72);
+            ctx.fill();
+            // Zapatillas Rojas
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(2, 68, 12, 6);
+            ctx.fillRect(34, 70, 12, 6);
+            ctx.restore();
+
+            // Patineta debajo de la chica
+            ctx.fillStyle = '#0284c7';
+            ctx.beginPath();
+            ctx.roundRect(girlRunner.x - 10, tileY - 14, 60, 10, 5);
+            ctx.fill();
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.arc(girlRunner.x, tileY - 2, 5, 0, Math.PI * 2);
+            ctx.arc(girlRunner.x + 40, tileY - 2, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3. DIBUJAR AL CHICO CORRIENDO
+            ctx.save();
+            ctx.translate(boyRunner.x, boyRunner.y);
+            // Cabeza y Cabello Oscuro
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(20, 12, 14, 0, Math.PI * 2);
+            ctx.fill();
+            // Piel
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath();
+            ctx.arc(20, 14, 10, 0, Math.PI * 2);
+            ctx.fill();
+            // Polo Blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(10, 24, 20, 26);
+            // Pantalones Oscuros
+            ctx.fillStyle = '#0f172a';
+            const lOff = (boyRunner.legFrame - 2) * 6;
+            ctx.beginPath();
+            ctx.moveTo(12, 50); ctx.lineTo(12 + lOff, 70);
+            ctx.moveTo(26, 50); ctx.lineTo(26 - lOff, 70);
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#0f172a';
+            ctx.stroke();
+            ctx.restore();
+
+            // 4. DIBUJAR A LA DRA. SOFÍA EN GLOBO CIRCULAR (ESQUINA SUPERIOR DERECHA)
+            const docX = 790;
+            const docY = 80;
+            
+            // Marco Circular con Borde Azul
+            ctx.fillStyle = '#06b6d4';
+            ctx.beginPath();
+            ctx.arc(docX, docY, 52, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ecfeff';
+            ctx.beginPath();
+            ctx.arc(docX, docY, 46, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Retrato Dra. Sofía
+            ctx.fillStyle = '#1e293b'; // Cabello
+            ctx.beginPath();
+            ctx.arc(docX, docY - 6, 26, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fbcfe8'; // Rostro
+            ctx.beginPath();
+            ctx.arc(docX, docY - 2, 20, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff'; // Bata Médica
+            ctx.fillRect(docX - 22, docY + 12, 44, 28);
+            ctx.fillStyle = '#0284c7'; // Estetoscopio
+            ctx.beginPath();
+            ctx.arc(docX, docY + 20, 10, 0, Math.PI);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#0284c7';
+            ctx.stroke();
+
+            // Globo de Diálogo de la Dra. Sofía en Español
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect( docX - 320, docY - 55, 240, 75, 16 );
+            ctx.fill();
+            ctx.stroke();
+
+            // Pico del globo
+            ctx.beginPath();
+            ctx.moveTo(docX - 80, docY - 10);
+            ctx.lineTo(docX - 55, docY);
+            ctx.lineTo(docX - 70, docY + 10);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+
+            // Texto en español dentro del globo
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 12px Plus Jakarta Sans';
+            ctx.fillText("¡Buen trabajo! Recoge escudos", docX - 305, docY - 32);
+            ctx.fillText("de condón para protegerte", docX - 305, docY - 16);
+            ctx.fillText("contra los mitos. ¡Infórmate!", docX - 305, docY + 2);
+
+            // 5. DIBUJAR MONSTRUO DE NUBE ROJA ("EL RUMOR / MITO")
+            obstacles.forEach(obs => {
+                ctx.fillStyle = '#b91c1c';
+                ctx.beginPath();
+                ctx.arc(obs.x + 35, obs.y + 35, 32, 0, Math.PI * 2);
+                ctx.arc(obs.x + 15, obs.y + 35, 22, 0, Math.PI * 2);
+                ctx.arc(obs.x + 55, obs.y + 35, 22, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ojos enojados del mito
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(obs.x + 22, obs.y + 26, 8, 8);
+                ctx.fillRect(obs.x + 42, obs.y + 26, 8, 8);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(obs.x + 24, obs.y + 28, 4, 4);
+                ctx.fillRect(obs.x + 44, obs.y + 28, 4, 4);
+
+                // Texto MYTH / MITO
+                ctx.fillStyle = '#fef2f2';
+                ctx.font = 'bold 11px Fredoka';
+                ctx.fillText('MITO', obs.x + 21, obs.y + 48);
+            });
+
+            // 6. DIBUJAR ÍTEM DE ESCUDO / CONDÓN VERDE BRILLANTE
+            powerups.forEach(p => {
+                ctx.save();
+                ctx.shadowColor = '#22c55e';
+                ctx.shadowBlur = 15;
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.25)';
+                ctx.beginPath();
+                ctx.arc(p.x + 22, p.y + 22, 26, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.fillStyle = '#4ade80';
+                ctx.font = 'bold 22px sans-serif';
+                ctx.fillText('🛡️', p.x + 10, p.y + 30);
+                ctx.restore();
+            });
+
+            // 7. MARCADOR SUPERIOR (HUD IDÉNTICO A LA IMAGEN)
+            ctx.fillStyle = '#000000';
+            ctx.font = 'black 22px Fredoka';
+            ctx.fillText(`SCORE: ${score}`, 30, 42);
+
+            ctx.fillText(`LIVES:`, 30, 75);
+            ctx.fillStyle = '#ef4444';
+            for (let i = 0; i < lives; i++) {
+                ctx.fillText('❤️', 110 + (i * 28), 75);
+            }
+
+            // Título de Nivel al Centro
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 16px Fredoka';
+            ctx.textAlign = 'center';
+            ctx.fillText(`NIVEL ${level}: PROTECTORES DE BARRERA`, canvas.width / 2, 42);
+            ctx.textAlign = 'left';
+        }
+
+        function triggerQuizModal() {
+            const currentQuestions = questionBank[level] || questionBank[1];
+            const qObj = currentQuestions[Math.floor(Math.random() * currentQuestions.length)];
+
+            document.getElementById('questionText').innerText = qObj.q;
+            const container = document.getElementById('answersContainer');
+            container.innerHTML = '';
+
+            qObj.a.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-game w-full text-left p-3.5 bg-slate-800 hover:bg-purple-900/60 text-slate-100 font-bold text-xs sm:text-sm rounded-xl border border-purple-500/30';
+                btn.innerText = opt.text;
+                btn.onclick = () => handleAnswer(opt.correct);
+                container.appendChild(btn);
+            });
+
+            document.getElementById('quizModal').classList.remove('hidden');
+        }
+
+        function handleAnswer(isCorrect) {
+            document.getElementById('quizModal').classList.add('hidden');
+
+            if (isCorrect) {
+                score += 300;
+                gameRunning = true;
+            } else {
+                lives--;
+                if (lives <= 0) {
+                    document.getElementById('finalScore').innerText = score;
+                    document.getElementById('gameOverModal').classList.remove('hidden');
+                } else {
+                    gameRunning = true;
+                }
+            }
+        }
+
+        function restartGame() {
+            score = 1250;
+            lives = 3;
+            level = 1;
+            gameSpeed = 5;
+            obstacles = [{ x: 740, y: 260, width: 70, height: 70, name: 'MythCloud' }];
+            powerups = [{ x: 580, y: 310, width: 45, height: 45, type: 'condom' }];
+            document.getElementById('gameOverModal').classList.add('hidden');
+            gameRunning = true;
+        }
+
+        /* Stream/Download function for offline browser file */
+        function downloadGameApp() {
+            const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "Mision_Autonomia_Anticonceptivos_Runner.html";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Iniciar ciclo de renderizado
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
